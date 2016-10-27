@@ -5,6 +5,7 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.Callback;
 
 import java.util.Map;
@@ -20,7 +21,10 @@ import java.io.IOException;
 import java.io.FileNotFoundException;
 
 public class ImageToBase64Module extends ReactContextBaseJavaModule {
-  Context context;
+
+  private int quality = 100;
+
+  private Context context;
 
   public ImageToBase64Module(ReactApplicationContext reactContext) {
     super(reactContext);
@@ -33,21 +37,31 @@ public class ImageToBase64Module extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void getBase64String(String uri, Callback callback) {
+  public void getBase64String(final ReadableMap options, final Callback callback) {
     try {
-      Bitmap image = MediaStore.Images.Media.getBitmap(this.context.getContentResolver(), Uri.parse(uri));
+      Bitmap image = MediaStore.Images.Media.getBitmap(
+        this.context.getContentResolver(),
+        Uri.parse(options.uri));
+
       if (image == null) {
-        callback.invoke("Failed to decode Bitmap, uri: " + uri);
+        callback.invoke("Failed to decode Bitmap, uri: " + options.uri);
       } else {
+        parseOptions(options);
         callback.invoke(null, bitmapToBase64(image));
       }
     } catch (IOException e) {
     }
   }
 
-  private String bitmapToBase64(Bitmap bitmap) {
+  private void parseOptions(final ReadableMap options) {
+    if (options.hasKey("quality")) {
+      quality = (int) (options.getDouble("quality") * 100);
+    }
+  }
+
+  private String bitmapToBase64(final Bitmap bitmap) {
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
+    bitmap.compress(Bitmap.CompressFormat.JPEG, quality, byteArrayOutputStream);
     byte[] byteArray = byteArrayOutputStream.toByteArray();
     return Base64.encodeToString(byteArray, Base64.DEFAULT);
   }
