@@ -23,7 +23,7 @@ import java.io.FileNotFoundException;
 public class ImageToBase64Module extends ReactContextBaseJavaModule {
 
   private int quality = 100;
-
+  private String url;
   private Context context;
 
   public ImageToBase64Module(ReactApplicationContext reactContext) {
@@ -39,14 +39,15 @@ public class ImageToBase64Module extends ReactContextBaseJavaModule {
   @ReactMethod
   public void getBase64String(final ReadableMap options, final Callback callback) {
     try {
+      parseOptions(options);
+
       Bitmap image = MediaStore.Images.Media.getBitmap(
         this.context.getContentResolver(),
-        Uri.parse(options.uri));
+        Uri.parse(url));
 
       if (image == null) {
-        callback.invoke("Failed to decode Bitmap, uri: " + options.uri);
+        callback.invoke("Failed to decode Bitmap, uri: " + url);
       } else {
-        parseOptions(options);
         callback.invoke(null, bitmapToBase64(image));
       }
     } catch (IOException e) {
@@ -56,6 +57,10 @@ public class ImageToBase64Module extends ReactContextBaseJavaModule {
   private void parseOptions(final ReadableMap options) {
     if (options.hasKey("quality")) {
       quality = (int) (options.getDouble("quality") * 100);
+    }
+
+    if (options.hasKey("url")) {
+      url = options.getString("url");
     }
   }
 
